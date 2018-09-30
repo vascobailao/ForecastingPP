@@ -67,9 +67,22 @@ ggseasonplot(fancy)
 ggsubseriesplot(fancy)
 
 # a10
+help(a10)
 ggseasonplot(a10)
 ggsubseriesplot(a10)
 
 # h02
+help(h02)
 ggseasonplot(h02)
 ggsubseriesplot(h02)
+
+# Exercise 6
+
+help(hsales)
+ggseasonplot(hsales)
+ggsubseriesplot(hsales)
+ggsubseriesplot(hsales)
+gglagplot(hsales)
+ggAcf(hsales)
+
+
