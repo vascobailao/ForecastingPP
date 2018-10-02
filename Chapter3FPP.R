@@ -151,3 +151,166 @@ autoplot(naive(goog200))
 naive(goog200, bootstrap=TRUE)
 autoplot(naive(goog200))
 
+### EXERCISES ###
+
+# Exercise 1 -> data: usnetelec, usgdp, mcopper, enplanements
+
+autoplot(usnetelec)
+(lambda <- BoxCox.lambda(usnetelec))
+autoplot(BoxCox(usnetelec,lambda))
+
+autoplot(usgdp)
+(lambda <- BoxCox.lambda(usgdp))
+autoplot(BoxCox(usgdp,lambda))
+
+autoplot(mcopper)
+(lambda <- BoxCox.lambda(mcopper))
+autoplot(BoxCox(mcopper,lambda))
+
+autoplot(enplanements)
+(lambda <- BoxCox.lambda(enplanements))
+autoplot(BoxCox(enplanements,lambda))
+
+# Exercise 2
+
+autoplot(cangas)
+(lambda <- BoxCox.lambda(cangas))
+autoplot(BoxCox(cangas,lambda))
+# can see that Box-Cox transformation doesn't yield simpler model
+
+# Exercise 3
+
+library(xlsx)
+retaildata <-readxl::read_excel("retail.xlsx", skip=1)
+myts <- ts(retaildata[,"A3349873A"], frequency=12, start=c(1982,4))
+
+lambda_retail <- BoxCox.lambda(myts)
+print(c("selected lambda:", lambda_retail))
+
+fc_retail <- rwf(myts, 
+                 drift = TRUE, 
+                 lambda = lambda_retail,
+                 h = 50,
+                 level = 80)
+
+fc_retail_biasadj <- rwf(myts, 
+                         drift = TRUE, 
+                         lambda = lambda_retail,
+                         h = 50,
+                         level = 80,
+                         biasadj = TRUE)
+
+autoplot(myts) +
+  autolayer(fc_retail, series = "Drift method with Box-Cox Transformation") +
+  autolayer(fc_retail_biasadj$mean, series = "Bias Adjusted") +
+  guides(colour = guide_legend(title = "Forecast"))
+
+# It would be better to choose bias adjusted Box-Cox Transformation with lambda = 0.128
+
+# Exercise 4
+
+autoplot(dole)
+(lambda <- BoxCox.lambda(dole))
+autoplot(BoxCox(dole,lambda))
+
+autoplot(usdeaths)
+(lambda <- BoxCox.lambda(usdeaths))
+autoplot(BoxCox(usdeaths,lambda))
+
+autoplot(bricksq)
+(lambda <- BoxCox.lambda(bricksq))
+autoplot(BoxCox(bricksq,lambda))
+
+# Exercise 5
+
+beer <- window(ausbeer, start=1992)
+fc <- snaive(beer)
+autoplot(fc)
+res <- residuals(fc)
+autoplot(res)
+checkresiduals(fc)
+
+# Exercise 6
+
+autoplot(WWWusage)
+fc <- naive(WWWusage)
+autoplot(fc)
+res <- residuals(fc)
+autoplot(res)
+checkresiduals(fc)
+
+autoplot(bricksq)
+fc <- snaive(bricksq)
+autoplot(fc)
+res <- residuals(fc)
+autoplot(res)
+checkresiduals(fc)
+
+# Exercise 7
+
+# 1 - Not necessarily. 
+# 2 - No, they should be uncorrelated.
+# 3 - Not necessarily
+# 4 - No, I should make it simpler.
+# 5 - Not necessarily. 
+
+# Exercise 8
+
+# a. Split the data into two parts using
+
+myts.train <- window(myts, end=c(2010,12))
+myts.test <- window(myts, start=2011)
+
+# b. Check that your data have been split appropriately by producing the following plot.
+
+autoplot(myts) + 
+  autolayer(myts.train, series="Training") +
+  autolayer(myts.test, series="Test")
+
+# c. Calculate forecasts using snaive applied to myts.train.
+
+snaive_myts_train <- snaive(myts.train)
+
+# d. Compare the accuracy of your forecasts against the actual values stored in myts.test.
+
+accuracy(snaive_myts_train, myts.test)
+
+# e. Check the residuals. Do the residuals appear to be uncorrelated and normally distributed?
+
+checkresiduals(snaive_myts_train)
+# residuals were correlated with each other and not normally distributed
+
+# f. How sensitive are the accuracy measures to the training/test split?
+
+# I thought of sensitivity as the ratio of the test set error to the train set error. When I used the definition, 
+# it looked like Mean Error is highly sensitive, RMSE, MAE, MPE, MASE are sensitive and MAPE and ACF1 aren't much sensitive.
+# I don't know whether this method is what the author wanted to solve this question about sensitivity.
+
+# Exercise 9
+
+vn <- visnights
+# a. Use window() to create three training sets for vn[,"Melbourne"], omitting the last 1, 2 and 3 years; call these train1, train2, and train3, respectively. For example train1 <- window(vn[, "Melbourne"], end = c(2014, 4)).
+vn_Melbourne_train1 <- window(vn[, "QLDMetro"], end = c(2014, 4))
+vn_Melbourne_train2 <- window(vn[, "QLDMetro"], end = c(2013, 4))
+vn_Melbourne_train3 <- window(vn[, "QLDMetro"], end = c(2012, 4))
+
+# b. Compute one year of forecasts for each training set using the snaive() method. 
+snaive_vn_Melbourne_train1 <- snaive(vn_Melbourne_train1, h = 4)
+snaive_vn_Melbourne_train2 <- snaive(vn_Melbourne_train2, h = 4)
+snaive_vn_Melbourne_train3 <- snaive(vn_Melbourne_train3, h = 4)
+
+# c. Use accuracy() to compare the MAPE over the three test sets. Comment on these.
+vn_Melbourne_test1 <- window(vn[, "QLDMetro"], start = c(2015, 1), end = c(2015, 4))
+vn_Melbourne_test2 <- window(vn[, "QLDMetro"], start = c(2014, 1), end = c(2014, 4))
+vn_Melbourne_test3 <- window(vn[, "QLDMetro"], start = c(2013, 1), end = c(2013, 4))
+
+accuracy(snaive_vn_Melbourne_train1, vn_Melbourne_test1)
+writeLines("")
+accuracy(snaive_vn_Melbourne_train2, vn_Melbourne_test2)
+writeLines("")
+accuracy(snaive_vn_Melbourne_train3, vn_Melbourne_test3)
+
+# MAPE was smallest for 2015 prediction and biggest for 2014 prediction. 
+# MAPE became smaller in 2013 prediction, but it wan't smaller than the one for 2015.
+
+
