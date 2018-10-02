@@ -313,4 +313,165 @@ accuracy(snaive_vn_Melbourne_train3, vn_Melbourne_test3)
 # MAPE was smallest for 2015 prediction and biggest for 2014 prediction. 
 # MAPE became smaller in 2013 prediction, but it wan't smaller than the one for 2015.
 
+# Exercise 10
 
+# a. Produce a time plot of the series.
+autoplot(dowjones)
+
+# b. Produce forecasts using the drift method and plot them.
+drift_dj <- rwf(dowjones, drift = TRUE)
+autoplot(drift_dj)
+
+# c. Show that the forecasts are identical to extending the line drawn between the 
+# first and last observations.
+dj_x <- c(1, 78)
+dj_y <- c(dowjones[1], dowjones[78])
+lm_dj <- lm(dj_y ~ dj_x)
+
+# It looked like ggplot2 package isn't compatible to graphics package that autoplot function, 
+# made of ggplot2 can't be worked with graphics function like abline, etc. 
+# When I tried it, 'plot.new has not been called yet' error appeared.
+
+autoplot(drift_dj) +
+  geom_abline(intercept = lm_dj$coefficients[1],
+              slope = lm_dj$coefficients[2],
+              colour = "red")
+
+autoplot(drift_dj) +
+  geom_line(aes(x = c(1, 78),
+                y = dowjones[c(1, 78)]), 
+            colour = "red")
+
+# d. Try using some of the other benchmark functions to forecast the same data set. Which do you think is best? Why?
+checkresiduals(drift_dj)
+
+mean_dj <- meanf(dowjones)
+autoplot(mean_dj)
+
+naive_dj <- naive(dowjones)
+autoplot(naive_dj)
+checkresiduals(naive_dj)
+
+snaive_dj <- snaive(dowjones, h = 10)
+autoplot(snaive_dj)
+
+# Exercise 11
+
+# a. Produce some plots of the data in order to become familiar with it.
+autoplot(ibmclose)
+
+# b. Split the data into a training set of 300 observations and a test set of 69 observations.
+ibm_train <- subset(ibmclose, end = 300)
+ibm_test <- subset(ibmclose, start = 301)
+
+# c. Try using various benchmark methods to forecast the training set and compare the results on the test set. Which method did best?
+snaive_ibm <- snaive(ibm_train, h = 69)
+naive_ibm <- naive(ibm_train, h = 69)
+drift_ibm <- rwf(ibm_train, drift = TRUE, h = 69)
+mean_ibm <- meanf(ibm_train, h = 69)
+
+autoplot(snaive_ibm) +
+  autolayer(ibm_test)
+autoplot(naive_ibm) +
+  autolayer(ibm_test)
+autoplot(drift_ibm) +
+  autolayer(ibm_test)
+autoplot(mean_ibm) +
+  autolayer(ibm_test)
+
+writeLines("Snaive method")
+accuracy(snaive_ibm, ibm_test)
+
+writeLines("\nNaive method")
+accuracy(naive_ibm, ibm_test)
+
+writeLines("\nDrift method")
+accuracy(drift_ibm, ibm_test)
+
+writeLines("\nMean method")
+accuracy(mean_ibm, ibm_test)
+
+e_snaive_ibm <- ibm_test - snaive_ibm$mean
+e_naive_ibm <- ibm_test - naive_ibm$mean
+e_drift_ibm <- ibm_test - drift_ibm$mean
+e_mean_ibm <- ibm_test - mean_ibm$mean
+
+autoplot(e_snaive_ibm^2, series = "snaive method") +
+  autolayer(e_naive_ibm^2, series = "naive method") +
+  autolayer(e_drift_ibm^2, series = "drift method") +
+  autolayer(e_mean_ibm^2, series = "mean method") +
+  guides(colour = guide_legend(title = "Forecast")) +
+  ggtitle("Errors of the forecast of closing IBM stock price") +
+  ylab(expression(paste("erro", r^{2})))
+# Drift method did best
+
+# Time series cross-validation method of tsCV function don't use full data unless h = 1. 
+# For example, if usable data has 100 points and h = 3, tsCV predicts 101st point with 
+# 98 points, 102nd with 99 points and 103rd with 100 points. 
+# Therefore error result value of tsCV cannot help differing from the values of accuracy function. 
+# Accuracy function always get result from full data.
+ibmclose %>% tsCV(forecastfunction = snaive, h = 69) ->  e_snaive_ibm_CV
+ibmclose %>% tsCV(forecastfunction = naive, h = 69) ->  e_naive_ibm_CV
+ibmclose %>% tsCV(forecastfunction = rwf, drift = TRUE, h = 69) ->  e_drift_ibm_CV
+ibmclose %>% tsCV(forecastfunction = meanf, h = 69) ->  e_mean_ibm_CV
+
+autoplot(subset(e_snaive_ibm_CV^2, start = 301), series = "snaive method") +
+  autolayer(subset(e_naive_ibm_CV^2, start = 301), series = "naive method") +
+  autolayer(subset(e_drift_ibm_CV^2, start = 301), series = "drift method") +
+  autolayer(subset(e_mean_ibm_CV^2, start = 301), series = "mean method") +
+  guides(colour = guide_legend(title = "Forecast")) +
+  ggtitle("Errors of the forecast of closing IBM stock price",
+          subtitle = "after using tsCV function") +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5)) +
+  ylab(expression(paste("erro", r^{2})))
+# Based on the returned results of tsCV function, I would've selected naive method because it yielded smallest error.
+
+# d. Check the residuals of your preferred method. Do they resemble white noise?
+checkresiduals(naive_ibm)
+checkresiduals(drift_ibm)
+
+# No. Even when I checked the residuals of naive method because the error values 
+# were similar to result of the drift method, they weren't like white noise, too.
+
+# Exercise 12
+
+# a. Produce some plots of the data in order to become familiar with it.
+autoplot(hsales)
+
+# b. Split the hsales data set into a training set and a test set, where the test set is the last two years of data.
+hsales_train <- subset(hsales, end = length(hsales) - 24)
+hsales_test <- subset(hsales, start = length(hsales) - 23)
+
+# c. Try using various benchmark methods to forecast the training set and compare the results on the test set.  Which method did best?
+snaive_hsales <- snaive(hsales_train, h = 24)
+naive_hsales <- naive(hsales_train, h = 24)
+drift_hsales <- rwf(hsales_train, drift = TRUE, h = 24)
+mean_hsales <- meanf(hsales_train, h = 24)
+
+autoplot(snaive_hsales) +
+  autolayer(hsales_test)
+autoplot(naive_hsales) +
+  autolayer(hsales_test)
+autoplot(drift_hsales) +
+  autolayer(hsales_test)
+autoplot(mean_hsales) +
+  autolayer(hsales_test)
+
+writeLines("Snaive method")
+accuracy(snaive_hsales, hsales_test)
+
+writeLines("\nNaive method")
+accuracy(naive_hsales, hsales_test)
+
+writeLines("\nDrift method")
+accuracy(drift_hsales, hsales_test)
+
+writeLines("\nMean method")
+accuracy(mean_hsales, hsales_test)
+
+# Seasonal naive method did the best.
+
+# d. Check the residuals of your preferred method. Do they resemble white noise?
+checkresiduals(snaive_hsales) 
+# But the residuals don't resemble white noise
